@@ -32,13 +32,15 @@
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL license and that you accept its terms.
  */
-package fr.insalyon.creatis.grida.server.business;
+package fr.insalyon.creatis.grida.server.execution;
 
-import fr.insalyon.creatis.grida.common.bean.ZombieFile;
+import fr.insalyon.creatis.grida.common.bean.Operation;
+import fr.insalyon.creatis.grida.server.GridaConfiguration;
+import fr.insalyon.creatis.grida.server.business.BusinessException;
+import fr.insalyon.creatis.grida.server.business.PoolBusiness;
 import fr.insalyon.creatis.grida.server.dao.DAOException;
-import fr.insalyon.creatis.grida.server.dao.DAOFactory;
-import fr.insalyon.creatis.grida.server.dao.ZombieFilesDAO;
-import java.util.List;
+import fr.insalyon.creatis.grida.server.dao.PoolDAO;
+import java.util.Calendar;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -47,43 +49,55 @@ import org.springframework.stereotype.Component;
  * @author Rafael Silva
  */
 @Component
-public class ZombieBusiness {
+public class PoolCleanService extends Thread {
 
-    private static final Logger logger = Logger.getLogger(ZombieBusiness.class);
-    private ZombieFilesDAO zombieFilesDAO;
+    private static final Logger logger = Logger.getLogger(PoolCleanService.class);
+    private volatile boolean stop;
 
-    public ZombieBusiness(ZombieFilesDAO zombieFilesDAO) {
-        this.zombieFilesDAO = zombieFilesDAO;
+    private PoolDAO poolDAO;
+    private PoolBusiness poolBusiness;
+    private GridaConfiguration configuration;
+
+    public PoolCleanService(PoolDAO poolDAO, PoolBusiness poolBusiness, GridaConfiguration configuration) {
+        this.poolBusiness = poolBusiness;
+        this.configuration = configuration;
+        stop = false;
+        this.poolDAO = poolDAO;
     }
 
-    /**
-     * 
-     * @return
-     * @throws BusinessException 
-     */
-    public List<ZombieFile> getList() throws BusinessException {
-        
-        try {
-            return zombieFilesDAO.getZombieFiles();
-            
-        } catch (DAOException ex) {
-            throw new BusinessException(ex);
+    @Override
+    public synchronized void start() {
+        super.start();
+    }
+
+    @Override
+    public void run() {
+
+
+        while (!stop) {
+            try {
+                Calendar cal = Calendar.getInstance();
+                cal.add(Calendar.DATE, -(configuration.getMaxHistory()));
+
+                for (Operation operation : poolDAO.getOldOperations(cal.getTime())) {
+                    try {
+                        poolBusiness.removeOperationById(operation.getId());
+                    } catch (BusinessException ex) {
+                        logger.error(ex);
+                    }
+                }
+                sleep(86400000);
+
+            } catch (DAOException ex) {
+                // do nothing
+            } catch (InterruptedException ex) {
+                logger.error(ex);
+            }
         }
     }
-    
-    /**
-     * Deletes a zombie file.
-     * 
-     * @param surl
-     * @throws BusinessException 
-     */
-    public void deleteZombieFile(String surl) throws BusinessException {
 
-        try {
-            zombieFilesDAO.delete(surl);
+    public synchronized void terminate() {
 
-        } catch (DAOException ex) {
-            throw new BusinessException(ex);
-        }
+        stop = true;
     }
 }

@@ -32,14 +32,11 @@
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL license and that you accept its terms.
  */
-package fr.insalyon.creatis.grida.server.business;
+package fr.insalyon.creatis.grida.server.execution.cache;
 
-import fr.insalyon.creatis.grida.common.bean.ZombieFile;
-import fr.insalyon.creatis.grida.server.dao.DAOException;
-import fr.insalyon.creatis.grida.server.dao.DAOFactory;
-import fr.insalyon.creatis.grida.server.dao.ZombieFilesDAO;
-import java.util.List;
-import org.apache.log4j.Logger;
+import fr.insalyon.creatis.grida.server.business.*;
+import fr.insalyon.creatis.grida.server.execution.*;
+import fr.insalyon.creatis.grida.common.Communication;
 import org.springframework.stereotype.Component;
 
 /**
@@ -47,43 +44,44 @@ import org.springframework.stereotype.Component;
  * @author Rafael Silva
  */
 @Component
-public class ZombieBusiness {
+public class DeleteCachedFileCommandExecutor {
 
-    private static final Logger logger = Logger.getLogger(ZombieBusiness.class);
-    private ZombieFilesDAO zombieFilesDAO;
+    private CacheBusiness cacheBusiness;
 
-    public ZombieBusiness(ZombieFilesDAO zombieFilesDAO) {
-        this.zombieFilesDAO = zombieFilesDAO;
+    public DeleteCachedFileCommandExecutor(CacheBusiness cacheBusiness) {
+        this.cacheBusiness = cacheBusiness;
     }
 
-    /**
-     * 
-     * @return
-     * @throws BusinessException 
-     */
-    public List<ZombieFile> getList() throws BusinessException {
-        
+    public void execute(DeleteCachedFileCommand command) {
+
         try {
-            return zombieFilesDAO.getZombieFiles();
-            
-        } catch (DAOException ex) {
-            throw new BusinessException(ex);
+            cacheBusiness.deleteCachedFile(command.getPath());
+            command.getCommunication().sendSucessMessage();
+
+        } catch (BusinessException ex) {
+            command.getCommunication().sendErrorMessage(ex.getMessage());
         }
+        command.getCommunication().sendEndOfMessage();
     }
-    
-    /**
-     * Deletes a zombie file.
-     * 
-     * @param surl
-     * @throws BusinessException 
-     */
-    public void deleteZombieFile(String surl) throws BusinessException {
 
-        try {
-            zombieFilesDAO.delete(surl);
+    public static class DeleteCachedFileCommand extends Command {
 
-        } catch (DAOException ex) {
-            throw new BusinessException(ex);
+        private String path;
+
+        public DeleteCachedFileCommand(Communication communication,
+                                       String proxyFileName, String path) {
+
+            super(communication, proxyFileName);
+            this.path = path;
+        }
+
+        @Override
+        protected void executeOn(CommandExecutor commandExecutor) {
+            commandExecutor.execute(this);
+        }
+
+        public String getPath() {
+            return path;
         }
     }
 }

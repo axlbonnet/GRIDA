@@ -34,25 +34,50 @@
  */
 package fr.insalyon.creatis.grida.server.execution;
 
-import fr.insalyon.creatis.grida.common.Communication;
-import fr.insalyon.creatis.grida.common.Constants;
-import fr.insalyon.creatis.grida.common.ExecutorConstants;
-import fr.insalyon.creatis.grida.server.execution.cache.AllCachedFilesCommand;
-import fr.insalyon.creatis.grida.server.execution.cache.DeleteCachedFileCommand;
-import fr.insalyon.creatis.grida.server.execution.command.*;
-import fr.insalyon.creatis.grida.server.execution.pool.*;
-import fr.insalyon.creatis.grida.server.execution.zombie.DeleteZombieFileCommand;
-import fr.insalyon.creatis.grida.server.execution.zombie.ZombieGetListCommand;
-import java.io.IOException;
+import fr.insalyon.creatis.grida.common.*;
+import fr.insalyon.creatis.grida.server.execution.cache.AllCachedFilesCommandExecutor.AllCachedFilesCommand;
+import fr.insalyon.creatis.grida.server.execution.cache.DeleteCachedFileCommandExecutor.DeleteCachedFileCommand;
+import fr.insalyon.creatis.grida.server.execution.command.CreateFolderCommandExecutor.CreateFolderCommand;
+import fr.insalyon.creatis.grida.server.execution.command.DeleteCommandExecutor.DeleteCommand;
+import fr.insalyon.creatis.grida.server.execution.command.ExistDataCommandExecutor.ExistDataCommand;
+import fr.insalyon.creatis.grida.server.execution.command.GetModificationDateCommandExecutor.GetModificationDateCommand;
+import fr.insalyon.creatis.grida.server.execution.command.GetRemoteFileCommandExecutor.GetRemoteFileCommand;
+import fr.insalyon.creatis.grida.server.execution.command.GetRemoteFolderCommandExecutor.GetRemoteFolderCommand;
+import fr.insalyon.creatis.grida.server.execution.command.ListFilesAndFoldersCommandExecutor.ListFilesAndFoldersCommand;
+import fr.insalyon.creatis.grida.server.execution.command.RenameCommandExecutor.RenameCommand;
+import fr.insalyon.creatis.grida.server.execution.command.ReplicatePreferredSEsCommandExecutor.ReplicatePreferredSEsCommand;
+import fr.insalyon.creatis.grida.server.execution.command.SetCommentCommandExecutor.SetCommentCommand;
+import fr.insalyon.creatis.grida.server.execution.command.UploadFileCommandExecutor.UploadFileCommand;
+import fr.insalyon.creatis.grida.server.execution.pool.PoolAddOperationCommandExecutor.PoolAddOperationCommand;
+import fr.insalyon.creatis.grida.server.execution.pool.PoolAllOperationsCommandExecutor.PoolAllOperationsCommand;
+import fr.insalyon.creatis.grida.server.execution.pool.PoolLimitedOperationsByDateCommandExecutor.PoolLimitedOperationsByDateCommand;
+import fr.insalyon.creatis.grida.server.execution.pool.PoolOperationByIdCommandExecutor.PoolOperationByIdCommand;
+import fr.insalyon.creatis.grida.server.execution.pool.PoolOperationsByUserCommandExecutor.PoolOperationsByUserCommand;
+import fr.insalyon.creatis.grida.server.execution.pool.PoolRemoveOperationByIdCommandExecutor.PoolRemoveOperationByIdCommand;
+import fr.insalyon.creatis.grida.server.execution.pool.PoolRemoveOperationsByUserCommandExecutor.PoolRemoveOperationsByUserCommand;
+import fr.insalyon.creatis.grida.server.execution.zombie.DeleteZombieFileCommandExecutor.DeleteZombieFileCommand;
+import fr.insalyon.creatis.grida.server.execution.zombie.ZombieGetListCommandExecutor.ZombieGetListCommand;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
 
 /**
  *
  * @author Rafael Silva
  */
-public class Executor extends Thread {
+@Component
+@Scope(BeanDefinition.SCOPE_PROTOTYPE)
+public abstract class Executor extends Thread {
 
     private static final Logger logger = Logger.getLogger(Executor.class);
+
+    @Autowired
+    private CommandExecutor commandExecutor;
+
     private Communication communication;
 
     public Executor(Communication communication) {
@@ -68,7 +93,7 @@ public class Executor extends Thread {
                 Command command = parseCommand(message);
 
                 if (command != null) {
-                    command.execute();
+                    command.executeOn(commandExecutor);
                 }
             } else {
                 logException(new Exception("Error during message receive: " + message));

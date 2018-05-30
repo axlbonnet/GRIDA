@@ -31,9 +31,7 @@
 package fr.insalyon.creatis.grida.server.operation;
 
 import fr.insalyon.creatis.grida.common.bean.GridData;
-import fr.insalyon.creatis.grida.server.Configuration;
-import fr.insalyon.creatis.grida.server.dao.DAOException;
-import fr.insalyon.creatis.grida.server.dao.DAOFactory;
+import fr.insalyon.creatis.grida.server.GridaConfiguration;
 import fr.insalyon.creatis.grida.server.execution.PoolProcessManager;
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,11 +40,12 @@ import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
 
 public class DiracOperations implements Operations {
 
@@ -63,8 +62,11 @@ public class DiracOperations implements Operations {
     private static int INDEX_TIME = 6;
     private static int INDEX_NAME = 7;
 
-    public DiracOperations(String bashrcPath) {
-        this.bashrcPath = bashrcPath;
+    private GridaConfiguration configuration;
+
+    public DiracOperations(GridaConfiguration configuration) {
+        this.configuration = configuration;
+        this.bashrcPath = configuration.getDiracBashrc();
     }
 
     @Override
@@ -267,7 +269,7 @@ public class DiracOperations implements Operations {
             logger.info("[dirac] Uploading file: " + localFilePath +
                         " - To: " + remoteDir);
 
-            List<String> ses = Configuration.getInstance().getPreferredSEs();
+            List<String> ses = configuration.getPreferredSEs();
             logger.info("[dirac] Uploading preferred SE: " + ses);
 
             if (ses.size() == 0) {
@@ -307,7 +309,7 @@ public class DiracOperations implements Operations {
     public void replicateFile(String proxy, String sourcePath)
         throws OperationException {
 
-        for (String se : Configuration.getInstance().getPreferredSEs()) {
+        for (String se : configuration.getPreferredSEs()) {
             logger.info(
                 "[dirac] Replicating: " + sourcePath + " - To: " + se);
 

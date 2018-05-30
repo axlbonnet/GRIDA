@@ -35,7 +35,7 @@
 package fr.insalyon.creatis.grida.server.operation;
 
 import fr.insalyon.creatis.grida.common.bean.GridData;
-import fr.insalyon.creatis.grida.server.Configuration;
+import fr.insalyon.creatis.grida.server.GridaConfiguration;
 import fr.insalyon.creatis.grida.server.dao.DAOException;
 import fr.insalyon.creatis.grida.server.dao.DAOFactory;
 import fr.insalyon.creatis.grida.server.execution.PoolProcessManager;
@@ -58,6 +58,15 @@ import org.apache.log4j.Logger;
 public class LCGOperations implements Operations {
 
     private final static Logger logger = Logger.getLogger(LCGOperations.class);
+
+    private GridaConfiguration configuration;
+    private LCGFailoverOperations lcgFailoverOperations;
+
+    public LCGOperations(GridaConfiguration configuration,
+                         LCGFailoverOperations lcgFailoverOperations) {
+        this.configuration = configuration;
+        this.lcgFailoverOperations = lcgFailoverOperations;
+    }
 
     @Override
     public long getModificationDate(String proxy, String path)
@@ -253,7 +262,7 @@ public class LCGOperations implements Operations {
                 proxy, "lcg-cp", "-v",
                 "--connect-timeout", "10", "--sendreceive-timeout", "900",
                 "--bdii-timeout", "10", "--srm-timeout", "30",
-                "--vo", Configuration.getInstance().getVo(),
+                "--vo", configuration.getVo(),
                 lfn, localPath);
 
             PoolProcessManager.getInstance().addProcess(operationID, process);
@@ -306,13 +315,13 @@ public class LCGOperations implements Operations {
             logger.info("[LCG] Uploading file: " + localFilePath +
                         " - To: " + lfn);
 
-            for (String se : Configuration.getInstance().getPreferredSEs()) {
+            for (String se : configuration.getPreferredSEs()) {
 
                 Process process = OperationsUtil.getProcess(
                     proxy, "lcg-cr", "-v",
                     "--connect-timeout", "10", "--sendreceive-timeout", "900",
                     "--bdii-timeout", "10", "--srm-timeout", "30",
-                    "--vo", Configuration.getInstance().getVo(),
+                    "--vo", configuration.getVo(),
                     "-d", se, "-l", lfn, localPath);
 
                 PoolProcessManager.getInstance()
@@ -365,14 +374,14 @@ public class LCGOperations implements Operations {
         try {
             String lfn = "lfn:" + sourcePath;
 
-            for (String se : Configuration.getInstance().getPreferredSEs()) {
+            for (String se : configuration.getPreferredSEs()) {
                 logger.info("[LCG] Replicating: " + lfn + " - To: " + se);
 
                 Process process = OperationsUtil.getProcess(
                     proxy, "lcg-rep", "-v",
                     "--connect-timeout", "10", "--sendreceive-timeout", "900",
                     "--bdii-timeout", "10", "--srm-timeout", "30",
-                    "--vo", Configuration.getInstance().getVo(),
+                    "--vo", configuration.getVo(),
                     "-d", se, lfn);
 
                 BufferedReader r = new BufferedReader(
@@ -493,7 +502,7 @@ public class LCGOperations implements Operations {
 
         try {
             try {
-                LCGFailoverOperations.deleteFile(proxy, path);
+                lcgFailoverOperations.deleteFile(proxy, path);
             } catch (Exception ex) {
             }
 

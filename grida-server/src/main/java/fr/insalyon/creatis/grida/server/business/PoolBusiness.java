@@ -37,9 +37,8 @@ package fr.insalyon.creatis.grida.server.business;
 import fr.insalyon.creatis.grida.common.Constants;
 import fr.insalyon.creatis.grida.common.bean.Operation;
 import fr.insalyon.creatis.grida.common.bean.Operation.Type;
-import fr.insalyon.creatis.grida.server.Configuration;
+import fr.insalyon.creatis.grida.server.GridaConfiguration;
 import fr.insalyon.creatis.grida.server.dao.DAOException;
-import fr.insalyon.creatis.grida.server.dao.DAOFactory;
 import fr.insalyon.creatis.grida.server.dao.PoolDAO;
 import fr.insalyon.creatis.grida.server.execution.*;
 import java.io.File;
@@ -48,19 +47,40 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  *
  * @author Rafael Ferreira da Silva
  */
+@Component
 public class PoolBusiness {
 
     private static final Logger logger = Logger.getLogger(PoolBusiness.class);
     private PoolDAO poolDAO;
+    private PoolDownloadService poolDownloadService;
+    private PoolUploadService poolUploadService;
+    private PoolDeleteService poolDeleteService;
+    private PoolReplicateService poolReplicateService;
+    private GridaConfiguration configuration;
 
-    public PoolBusiness() {
+    public PoolBusiness(PoolDAO poolDAO,
+                        GridaConfiguration configuration) {
+        this.poolDAO = poolDAO;
+        this.configuration = configuration;
+    }
 
-        poolDAO = DAOFactory.getDAOFactory().getPoolDAO();
+    // need to be done in method and not in the cosntructor because there is a circula dependency
+    @Autowired
+    public void setPoolServices(PoolDownloadService poolDownloadService,
+                                PoolUploadService poolUploadService,
+                                PoolDeleteService poolDeleteService,
+                                PoolReplicateService poolReplicateService) {
+        this.poolDownloadService = poolDownloadService;
+        this.poolUploadService = poolUploadService;
+        this.poolDeleteService = poolDeleteService;
+        this.poolReplicateService = poolReplicateService;
     }
 
     /**
@@ -95,7 +115,7 @@ public class PoolBusiness {
             
             long freeSpace = new File(".").getFreeSpace();
             long totalSpace = new File(".").getTotalSpace();
-            if (freeSpace - size < totalSpace * Configuration.getInstance().getMinAvailableDiskSpace()) {
+            if (freeSpace - size < totalSpace * configuration.getMinAvailableDiskSpace()) {
                 op.setStatus(Operation.Status.Failed);
                 logger.error("Unable to download '" + source + "' due to disk space limits. Size: " + ((int) size / 1024 / 1024) + " MB.");
             }
@@ -106,16 +126,16 @@ public class PoolBusiness {
 
                 case Download:
                 case Download_Files:
-                    PoolDownload.getInstance();
+                    poolDownloadService.start();
                     break;
                 case Upload:
-                    PoolUpload.getInstance();
+                    poolUploadService.start();
                     break;
                 case Delete:
-                    PoolDelete.getInstance();
+                    poolDeleteService.start();
                     break;
                 case Replicate:
-                    PoolReplicate.getInstance();
+                    poolReplicateService.start();
                     break;
             }
 

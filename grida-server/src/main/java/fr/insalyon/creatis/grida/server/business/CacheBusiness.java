@@ -38,7 +38,7 @@ import fr.insalyon.creatis.grida.server.dao.CacheFileDAO;
 import fr.insalyon.creatis.grida.server.dao.DAOException;
 import fr.insalyon.creatis.grida.server.dao.DAOFactory;
 import fr.insalyon.creatis.grida.common.bean.CachedFile;
-import fr.insalyon.creatis.grida.server.Configuration;
+import fr.insalyon.creatis.grida.server.GridaConfiguration;
 import fr.insalyon.creatis.grida.server.dao.CacheListDAO;
 import java.io.File;
 import java.io.IOException;
@@ -47,23 +47,27 @@ import java.util.Date;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 /**
  *
  * @author Rafael Silva
  */
+@Component
 public class CacheBusiness {
 
     private static final Logger logger = Logger.getLogger(CacheBusiness.class);
-    private Configuration configuration;
+
+    private GridaConfiguration gridaConfiguration;
     private CacheFileDAO cacheFileDAO;
     private CacheListDAO cacheListDAO;
 
-    public CacheBusiness() {
-
-        configuration = Configuration.getInstance();
-        cacheFileDAO = DAOFactory.getDAOFactory().getCacheFileDAO();
-        cacheListDAO = DAOFactory.getDAOFactory().getCacheListDAO();
+    public CacheBusiness(GridaConfiguration gridaConfiguration,
+                         CacheFileDAO cacheFileDAO,
+                         CacheListDAO cacheListDAO) {
+        this.gridaConfiguration = gridaConfiguration;
+        this.cacheFileDAO = cacheFileDAO;
+        this.cacheListDAO = cacheListDAO;
     }
 
     /**
@@ -96,10 +100,10 @@ public class CacheBusiness {
         try {
             long sourceSize = FileUtils.sizeOf(new File(sourcePath));
 
-            if ((double) sourceSize <= configuration.getCacheFilesMaxSize()) {
+            if ((double) sourceSize <= gridaConfiguration.getCacheFilesMaxSize()) {
 
                 if (cacheName == null) {
-                    cacheName = configuration.getCacheFilesPath()
+                    cacheName = gridaConfiguration.getCacheFilesPath()
                             + "/" + System.nanoTime() + "-file";
                     logger.info("Adding file \"" + remoteFilePath + "\" to cache.");
 
@@ -109,7 +113,7 @@ public class CacheBusiness {
                     logger.info("Updating file \"" + remoteFilePath + "\" in the cache.");
                 }
 
-                if (configuration.getCacheFilesMaxSize()
+                if (gridaConfiguration.getCacheFilesMaxSize()
                         - cacheFileDAO.getTotalUsedSpace() <= sourceSize) {
 
                     for (String name : cacheFileDAO.delete(sourceSize)) {
@@ -189,7 +193,7 @@ public class CacheBusiness {
     public void addPathToCache(String path, List<String> dataList) throws BusinessException {
 
         try {
-            if (cacheListDAO.getNumberOfEntries() == Configuration.getInstance().getCacheListMaxEntries()) {
+            if (cacheListDAO.getNumberOfEntries() == gridaConfiguration.getCacheListMaxEntries()) {
                 cacheListDAO.delete();
             }
             if (cacheListDAO.getPathList(path) == null) {
@@ -218,7 +222,7 @@ public class CacheBusiness {
                 Calendar calLastRefresh = Calendar.getInstance();
                 calLastRefresh.setTime(lastRefresh);
                 calLastRefresh.add(Calendar.HOUR_OF_DAY,
-                        Configuration.getInstance().getCacheListMaxHours());
+                        gridaConfiguration.getCacheListMaxHours());
 
                 return calLastRefresh.after(currentCal) ? true : false;
 

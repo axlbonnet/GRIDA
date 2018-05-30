@@ -32,14 +32,13 @@
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL license and that you accept its terms.
  */
-package fr.insalyon.creatis.grida.server.business;
+package fr.insalyon.creatis.grida.server.execution.command;
 
-import fr.insalyon.creatis.grida.common.bean.ZombieFile;
-import fr.insalyon.creatis.grida.server.dao.DAOException;
-import fr.insalyon.creatis.grida.server.dao.DAOFactory;
-import fr.insalyon.creatis.grida.server.dao.ZombieFilesDAO;
-import java.util.List;
-import org.apache.log4j.Logger;
+import fr.insalyon.creatis.grida.common.Communication;
+import fr.insalyon.creatis.grida.server.OperationBusinessProvider;
+import fr.insalyon.creatis.grida.server.business.BusinessException;
+import fr.insalyon.creatis.grida.server.business.OperationBusiness;
+import fr.insalyon.creatis.grida.server.execution.*;
 import org.springframework.stereotype.Component;
 
 /**
@@ -47,43 +46,52 @@ import org.springframework.stereotype.Component;
  * @author Rafael Silva
  */
 @Component
-public class ZombieBusiness {
+public class RenameCommandExecutor{
 
-    private static final Logger logger = Logger.getLogger(ZombieBusiness.class);
-    private ZombieFilesDAO zombieFilesDAO;
+    private OperationBusinessProvider operationBusinessProvider;
 
-    public ZombieBusiness(ZombieFilesDAO zombieFilesDAO) {
-        this.zombieFilesDAO = zombieFilesDAO;
+    public RenameCommandExecutor(OperationBusinessProvider operationBusinessProvider) {
+        this.operationBusinessProvider = operationBusinessProvider;
     }
 
-    /**
-     * 
-     * @return
-     * @throws BusinessException 
-     */
-    public List<ZombieFile> getList() throws BusinessException {
-        
+    public void execute(RenameCommand command) {
+
+        Communication communication = command.getCommunication();
+
         try {
-            return zombieFilesDAO.getZombieFiles();
-            
-        } catch (DAOException ex) {
-            throw new BusinessException(ex);
+            operationBusinessProvider.get(command.getProxyFileName())
+                    .rename(command.getOldName(), command.getNewName());
+
+        } catch (BusinessException ex) {
+            communication.sendErrorMessage(ex.getMessage());
         }
+        communication.sendEndOfMessage();
     }
-    
-    /**
-     * Deletes a zombie file.
-     * 
-     * @param surl
-     * @throws BusinessException 
-     */
-    public void deleteZombieFile(String surl) throws BusinessException {
 
-        try {
-            zombieFilesDAO.delete(surl);
+    public static class RenameCommand extends Command {
 
-        } catch (DAOException ex) {
-            throw new BusinessException(ex);
+        private String oldName;
+        private String newName;
+
+        public RenameCommand(Communication communication, String proxyFileName,
+                             String oldName, String newName) {
+
+            super(communication, proxyFileName);
+            this.oldName = oldName;
+            this.newName = newName;
+        }
+
+        @Override
+        protected void executeOn(CommandExecutor commandExecutor) {
+            commandExecutor.execute(this);
+        }
+
+        public String getOldName() {
+            return oldName;
+        }
+
+        public String getNewName() {
+            return newName;
         }
     }
 }

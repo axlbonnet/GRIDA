@@ -32,14 +32,12 @@
  * The fact that you are presently reading this means that you have had
  * knowledge of the CeCILL license and that you accept its terms.
  */
-package fr.insalyon.creatis.grida.server.business;
+package fr.insalyon.creatis.grida.server.execution.pool;
 
-import fr.insalyon.creatis.grida.common.bean.ZombieFile;
-import fr.insalyon.creatis.grida.server.dao.DAOException;
-import fr.insalyon.creatis.grida.server.dao.DAOFactory;
-import fr.insalyon.creatis.grida.server.dao.ZombieFilesDAO;
-import java.util.List;
-import org.apache.log4j.Logger;
+import fr.insalyon.creatis.grida.common.Communication;
+import fr.insalyon.creatis.grida.common.bean.Operation;
+import fr.insalyon.creatis.grida.server.business.*;
+import fr.insalyon.creatis.grida.server.execution.*;
 import org.springframework.stereotype.Component;
 
 /**
@@ -47,43 +45,34 @@ import org.springframework.stereotype.Component;
  * @author Rafael Silva
  */
 @Component
-public class ZombieBusiness {
+public class PoolAllOperationsCommandExecutor {
 
-    private static final Logger logger = Logger.getLogger(ZombieBusiness.class);
-    private ZombieFilesDAO zombieFilesDAO;
+    private PoolBusiness poolBusiness;
 
-    public ZombieBusiness(ZombieFilesDAO zombieFilesDAO) {
-        this.zombieFilesDAO = zombieFilesDAO;
+    public PoolAllOperationsCommandExecutor(PoolBusiness poolBusiness) {
+        this.poolBusiness = poolBusiness;
     }
 
-    /**
-     * 
-     * @return
-     * @throws BusinessException 
-     */
-    public List<ZombieFile> getList() throws BusinessException {
-        
+    public void execute(PoolAllOperationsCommand command) {
         try {
-            return zombieFilesDAO.getZombieFiles();
-            
-        } catch (DAOException ex) {
-            throw new BusinessException(ex);
+            for (Operation operation : poolBusiness.getOperations()) {
+                command.getCommunication().sendMessage(operation.toString());
+            }
+        } catch (BusinessException ex) {
+            command.getCommunication().sendErrorMessage(ex.getMessage());
         }
+        command.getCommunication().sendEndOfMessage();
     }
-    
-    /**
-     * Deletes a zombie file.
-     * 
-     * @param surl
-     * @throws BusinessException 
-     */
-    public void deleteZombieFile(String surl) throws BusinessException {
 
-        try {
-            zombieFilesDAO.delete(surl);
+    public static class PoolAllOperationsCommand extends Command {
 
-        } catch (DAOException ex) {
-            throw new BusinessException(ex);
+        public PoolAllOperationsCommand(Communication communication, String proxyFileName) {
+            super(communication, proxyFileName);
+        }
+
+        @Override
+        protected void executeOn(CommandExecutor commandExecutor) {
+            commandExecutor.execute(this);
         }
     }
 }

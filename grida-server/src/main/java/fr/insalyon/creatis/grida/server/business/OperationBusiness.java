@@ -36,7 +36,6 @@ package fr.insalyon.creatis.grida.server.business;
 
 import fr.insalyon.creatis.devtools.zip.FolderZipper;
 import fr.insalyon.creatis.grida.common.bean.GridData;
-import fr.insalyon.creatis.grida.server.Configuration;
 import fr.insalyon.creatis.grida.server.operation.Operations;
 import fr.insalyon.creatis.grida.server.operation.OperationException;
 import java.io.BufferedWriter;
@@ -47,22 +46,28 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Rafael Ferreira da Silva
  */
+@Component
+@Scope(BeanDefinition.SCOPE_PROTOTYPE)
 public class OperationBusiness {
 
     private static final Logger logger =
         Logger.getLogger(OperationBusiness.class);
-    private Configuration configuration;
+
     private String proxy;
+
+    @Autowired
     private Operations operations;
 
     public OperationBusiness(String proxy) {
         this.proxy = proxy;
-        configuration = Configuration.getInstance();
-        operations = configuration.getOperations();
     }
 
     /**

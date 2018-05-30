@@ -34,7 +34,7 @@
  */
 package fr.insalyon.creatis.grida.server.operation;
 
-import fr.insalyon.creatis.grida.server.Configuration;
+import fr.insalyon.creatis.grida.server.GridaConfiguration;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -42,14 +42,22 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 /**
  *
  * @author Rafael Silva
  */
+@Component
 public class LCGFailoverOperations {
 
     private static Logger logger = Logger.getLogger(LCGFailoverOperations.class);
+
+    private GridaConfiguration configuration;
+
+    public LCGFailoverOperations(GridaConfiguration configuration) {
+        this.configuration = configuration;
+    }
 
     /**
      *
@@ -60,7 +68,7 @@ public class LCGFailoverOperations {
      * @return
      * @throws Exception
      */
-    public static String downloadFile(String proxy, String localDirPath,
+    public String downloadFile(String proxy, String localDirPath,
             String fileName, String remoteFilePath) throws Exception {
 
         if (hasFailoverServer()) {
@@ -76,7 +84,7 @@ public class LCGFailoverOperations {
                 Process process = OperationsUtil.getProcess(proxy, "lcg-cp", "-v", "--nobdii",
                         "--connect-timeout", "10", "--sendreceive-timeout", "900",
                         "--bdii-timeout", "10", "--srm-timeout", "30",
-                        "--vo", Configuration.getInstance().getVo(),
+                        "--vo", configuration.getVo(),
                         "--defaultsetype", "srmv2", "-v", path,
                         localPath);
 
@@ -119,7 +127,7 @@ public class LCGFailoverOperations {
      * @return
      * @throws Exception
      */
-    public static void deleteFile(String proxy, String path) throws Exception {
+    public void deleteFile(String proxy, String path) throws Exception {
 
         if (hasFailoverServer()) {
 
@@ -158,8 +166,8 @@ public class LCGFailoverOperations {
      *
      * @return @throws Exception
      */
-    private static boolean hasFailoverServer() throws Exception {
-        return !Configuration.getInstance().getFailoverServers().isEmpty();
+    private boolean hasFailoverServer() throws Exception {
+        return !configuration.getFailoverServers().isEmpty();
     }
 
     /**
@@ -169,7 +177,7 @@ public class LCGFailoverOperations {
      * @return
      * @throws Exception
      */
-    private static List<String> getReplicas(String proxy, String lfn) throws Exception {
+    private List<String> getReplicas(String proxy, String lfn) throws Exception {
 
         Process process = OperationsUtil.getProcess(proxy, "lcg-lr", lfn);
 
@@ -180,7 +188,7 @@ public class LCGFailoverOperations {
 
         while ((s = r.readLine()) != null) {
             cout += s + "\n";
-            for (String failoverServer : Configuration.getInstance().getFailoverServers()) {
+            for (String failoverServer : configuration.getFailoverServers()) {
                 if (s.contains(new URI(failoverServer).getHost())) {
                     paths.add(failoverServer + "?SFN=" + new URI(s).getPath());
                 }

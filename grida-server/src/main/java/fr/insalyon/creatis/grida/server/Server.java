@@ -35,54 +35,80 @@
 package fr.insalyon.creatis.grida.server;
 
 import fr.insalyon.creatis.grida.common.Communication;
-import fr.insalyon.creatis.grida.server.dao.DAOException;
-import fr.insalyon.creatis.grida.server.dao.DAOFactory;
+import fr.insalyon.creatis.grida.server.dao.*;
 import fr.insalyon.creatis.grida.server.execution.*;
+import org.apache.log4j.*;
+import org.springframework.beans.factory.annotation.Lookup;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
+import java.net.*;
 
 /**
  * 
  * @author Rafael Silva
  */
-public class Server {
+@Component
+public abstract class Server {
+
+    public static void main(String[] args) {
+        PropertyConfigurator.configure(Server.class.getClassLoader().getResource("gridaLog4j.properties"));
+        ApplicationContext ac = new AnnotationConfigApplicationContext(SpringConfiguration.class);
+        ac.getBean(Server.class).run();
+    }
 
     private static final Logger logger = Logger.getLogger(Server.class);
 
-    public static void main(String[] args) {
+    private PoolDAO poolDAO;
+    private PoolCleanService poolCleanService;
+    private PoolDownloadService poolDownloadService;
+    private PoolUploadService poolUploadService;
+    private PoolDeleteService poolDeleteService;
+    private PoolReplicateService poolReplicateService;
+    private GridaConfiguration configuration;
 
+    public Server(PoolDAO poolDAO, PoolCleanService poolCleanService,
+                  PoolDownloadService poolDownloadService, PoolUploadService poolUploadService,
+                  PoolDeleteService poolDeleteService, PoolReplicateService poolReplicateService, GridaConfiguration configuration) {
+        this.poolDAO = poolDAO;
+        this.poolCleanService = poolCleanService;
+        this.poolDownloadService = poolDownloadService;
+        this.poolUploadService = poolUploadService;
+        this.poolDeleteService = poolDeleteService;
+        this.poolReplicateService = poolReplicateService;
+        this.configuration = configuration;
+    }
+
+    public void run() {
         try {
-            PropertyConfigurator.configure(Server.class.getClassLoader().getResource("gridaLog4j.properties"));
+            logger.info("Starting GRIDA Server on port " + configuration.getPort());
 
-            Configuration.getInstance();
-            logger.info("Starting GRIDA Server on port " + Configuration.getInstance().getPort());
-            
             // Pools
-            DAOFactory.getDAOFactory().getPoolDAO().resetOperations();
-            PoolClean.getInstance();
-            PoolDownload.getInstance();
-            PoolUpload.getInstance();
-            PoolDelete.getInstance();
-            PoolReplicate.getInstance();
+            poolDAO.resetOperations();
+            poolCleanService.start();
+            poolDownloadService.start();
+            poolUploadService.start();
+            poolDeleteService.start();
+            poolReplicateService.start();
 
             // Socket
             ServerSocket serverSocket = new ServerSocket(
-                    Configuration.getInstance().getPort(), 50, InetAddress.getLocalHost());
+                    configuration.getPort(), 50, InetAddress.getLocalHost());
 
             while (true) {
                 Socket socket = serverSocket.accept();
                 Communication communication = new Communication(socket);
-                new Executor(communication).start();
+                getExecutor(communication).start();
             }
-
         } catch (DAOException ex) {
             logger.error(ex);
         } catch (IOException ex) {
             logger.error(ex);
         }
     }
+
+    @Lookup
+    protected abstract Executor getExecutor(Communication communication);
 }
