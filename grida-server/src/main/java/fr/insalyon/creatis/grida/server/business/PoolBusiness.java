@@ -71,7 +71,7 @@ public class PoolBusiness {
         this.configuration = configuration;
     }
 
-    // need to be done in method and not in the cosntructor because there is a circula dependency
+    // need to be done in method and not in the constructor because there is a circular dependency
     @Autowired
     public void setPoolServices(PoolDownloadService poolDownloadService,
                                 PoolUploadService poolUploadService,

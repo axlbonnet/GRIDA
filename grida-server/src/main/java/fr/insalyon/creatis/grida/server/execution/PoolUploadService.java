@@ -54,7 +54,7 @@ import org.springframework.stereotype.Component;
  * @author Rafael Ferreira da Silva
  */
 @Component
-public abstract class PoolUploadService {
+public class PoolUploadService {
 
     private static final Logger logger = Logger.getLogger(PoolUpload.class);
     private static PoolUpload instance;

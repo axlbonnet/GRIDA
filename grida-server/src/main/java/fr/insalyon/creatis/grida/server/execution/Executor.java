@@ -71,7 +71,7 @@ import java.io.IOException;
  */
 @Component
 @Scope(BeanDefinition.SCOPE_PROTOTYPE)
-public abstract class Executor extends Thread {
+public class Executor extends Thread {
 
     private static final Logger logger = Logger.getLogger(Executor.class);
 

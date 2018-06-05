@@ -51,7 +51,7 @@ import org.springframework.stereotype.Component;
  * @author Rafael Silva
  */
 @Component
-public abstract class PoolDeleteService {
+public class PoolDeleteService {
 
     private static final Logger logger = Logger.getLogger(PoolDeleteService.class);
     private static PoolDelete instance;
