@@ -3,8 +3,8 @@ package fr.insalyon.creatis.grisa.server;
 import fr.insalyon.creatis.grida.common.*;
 import fr.insalyon.creatis.grida.server.Constants;
 import fr.insalyon.creatis.grida.server.*;
-import fr.insalyon.creatis.grida.server.operation.Operations;
-import org.junit.Test;
+import fr.insalyon.creatis.grida.server.operation.*;
+import org.junit.*;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.*;
@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.*;
 
 import static fr.insalyon.creatis.grida.common.Constants.MSG_SEP_1;
+import static fr.insalyon.creatis.grida.common.Constants.MSG_SUCCESS;
 
 /**
  * Created by abonnet on 5/17/18.
@@ -61,7 +62,7 @@ public class SpringConfigTest {
     }
 
     @Test
-    public void shouldCreateAFolder() throws IOException, InterruptedException {
+    public void shouldCreateAFolder() throws IOException, InterruptedException, OperationException {
         ApplicationContext ac = new AnnotationConfigApplicationContext(
                 SpringConfiguration.class,
                 MockableTestConfig.class);
@@ -76,8 +77,9 @@ public class SpringConfigTest {
                         + "/random/path");
         communication.sendEndOfMessage();
 
-        System.out.println(communication.getMessage());
+        Assert.assertEquals( MSG_SUCCESS, communication.getMessage());
         communication.close();
+        Mockito.verify(mockOperations).createFolder("fakeproxypath","/random/path");
 
     }
 
